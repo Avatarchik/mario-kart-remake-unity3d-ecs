@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 7706925457009145695}
   - component: {fileID: 971196986189493102}
   m_Layer: 0
-  m_Name: MainCamera
+  m_Name: Camera_Main
   m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -97,5 +97,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   target: {fileID: 0}
-  smoothSpeed: 60
+  smoothSpeed: 10
   offset: {x: 0, y: 0.5, z: -3}
