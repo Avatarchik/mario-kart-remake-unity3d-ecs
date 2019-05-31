@@ -5,11 +5,11 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     public float speed = 5f;
-    private Rigidbody rigidbody;
+    private Rigidbody rb;
 
     void Awake()
     {
-        rigidbody = GetComponent<Rigidbody>();
+        rb = GetComponent<Rigidbody>();
     }
     // Start is called before the first frame update
     void Start()
@@ -29,7 +29,7 @@ public class PlayerMovement : MonoBehaviour
         {
             print("a button held down " + Input.GetAxis("Horizontal"));
             Vector3 force = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")) * speed;
-            rigidbody.AddForce(force);
+            rb.AddForce(force);
         }
     }
 }
