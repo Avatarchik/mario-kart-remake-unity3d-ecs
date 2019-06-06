@@ -13,10 +13,17 @@ public class CameraFollow : MonoBehaviour
     // Update is called once per frame
     void LateUpdate()
     {
-        Vector3 newPosition = target.position + offset;
-        Vector3 smoothedPosition = Vector3.Slerp(transform.position, newPosition, smoothSpeed * Time.deltaTime);
-        transform.position = newPosition;
+        if(target != null)
+        {
+            Vector3 newPosition = target.position + offset;
+            Vector3 smoothedPosition = Vector3.Slerp(transform.position, newPosition, smoothSpeed * Time.deltaTime);
+            transform.position = newPosition;
 
-        transform.LookAt(target);
+            transform.LookAt(target);
+        }
+        else
+        {
+            
+        }
     }
 }

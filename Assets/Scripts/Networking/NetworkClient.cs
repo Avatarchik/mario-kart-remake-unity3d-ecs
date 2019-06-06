@@ -10,15 +10,18 @@ public class NetworkClient : MonoBehaviour
     public UdpNetworkDriver m_Driver;
     public NativeArray<NetworkConnection> m_Connection;
     public NativeArray<byte> m_Done;
-    public JobHandle ClientJobHandle;
+    public JobHandle clientJobHandle;
 
-    public NetworkPipeline m_Pipeline;
-    
+    public NetworkPipeline m_Unreliable_Pipeline;
+    public NetworkPipeline m_Reliable_Pipeline;
+
     const int k_PacketSize = 256;
     void Start()
     {
-        m_Driver = new UdpNetworkDriver(new SimulatorUtility.Parameters { MaxPacketSize = k_PacketSize, MaxPacketCount = 30, PacketDelayMs = 100 });
-        m_Pipeline = m_Driver.CreatePipeline(typeof(UnreliableSequencedPipelineStage), typeof(SimulatorPipelineStage));
+        ReliableUtility.Parameters reliabilityParams = new ReliableUtility.Parameters { WindowSize = 32 };
+        SimulatorUtility.Parameters simulatorParams = new SimulatorUtility.Parameters { MaxPacketSize = k_PacketSize, MaxPacketCount = 30, PacketDelayMs = 100 };
+
+        m_Driver = new UdpNetworkDriver(simulatorParams, reliabilityParams);
         m_Connection = new NativeArray<NetworkConnection>(1, Allocator.Persistent);
         m_Done = new NativeArray<byte>(1, Allocator.Persistent);
 
@@ -31,7 +34,7 @@ public class NetworkClient : MonoBehaviour
 
     public void OnDestroy()
     {
-        ClientJobHandle.Complete();
+        clientJobHandle.Complete();
 
         m_Connection.Dispose();
         m_Driver.Dispose();
@@ -40,16 +43,17 @@ public class NetworkClient : MonoBehaviour
 
     void Update()
     {
-        ClientJobHandle.Complete();
+        clientJobHandle.Complete();
         ClientUpdateJob job = new ClientUpdateJob
         {
             driver = m_Driver,
             connection = m_Connection,
             done = m_Done,
-            pipeline = m_Pipeline
+            unreliablePipeline = m_Unreliable_Pipeline,
+            reliablePipeline = m_Reliable_Pipeline
         };
-        ClientJobHandle = m_Driver.ScheduleUpdate();
-        ClientJobHandle = job.Schedule(ClientJobHandle);
+        clientJobHandle = m_Driver.ScheduleUpdate();
+        clientJobHandle = job.Schedule(clientJobHandle);
     }
 
 }
@@ -59,7 +63,8 @@ struct ClientUpdateJob : IJob
     public UdpNetworkDriver driver;
     public NativeArray<NetworkConnection> connection;
     public NativeArray<byte> done;
-    public NetworkPipeline pipeline;
+    public NetworkPipeline unreliablePipeline;
+    public NetworkPipeline reliablePipeline;
 
     public void Execute()
     {
@@ -80,17 +85,28 @@ struct ClientUpdateJob : IJob
             {
                 Debug.Log("We are now connected to the server");
 
-                var value = 1;
-                using (var writer = new DataStreamWriter(4, Allocator.Temp))
+                // after successfully connecting to the server
+                // spawn other players as well as this current player
+                // spawn this player right away
+                int commandType = CommandType.LoadLevel; // <-- change this to spawnnewplayer
+
+                using (DataStreamWriter writer = new DataStreamWriter(4, Allocator.Temp))
                 {
-                    writer.Write(value);
-                    connection[0].Send(driver, pipeline, writer);
+                    writer.Write(commandType);
+                    // connection status sent to the server should be guaranteed, so reliable pipeline is used here
+                    connection[0].Send(driver, reliablePipeline, writer);
                 }
             }
             else if (cmd == NetworkEvent.Type.Data)
             {
-                var readerCtx = default(DataStreamReader.Context);
+                DataStreamReader.Context readerCtx = default(DataStreamReader.Context);
                 uint value = stream.ReadUInt(ref readerCtx);
+                
+                if(value == CommandType.LoadLevel)
+                {
+                    // spawn the new client's player game object
+                    // send the new client all this player's position information so that they can be spawned
+                }
                 Debug.Log("Got the value = " + value + " back from the server");
                 // And finally change the `done[0]` to `1`
                 done[0] = 1;
@@ -102,6 +118,13 @@ struct ClientUpdateJob : IJob
                 Debug.Log("Client got disconnected from server");
                 connection[0] = default(NetworkConnection);
             }
+        }
+        // testing to see if client server connection requires constant connection
+        var val = 6;
+        using (var writer = new DataStreamWriter(4, Allocator.Temp))
+        {
+            writer.Write(val);
+            connection[0].Send(driver, unreliablePipeline, writer);
         }
     }
 }

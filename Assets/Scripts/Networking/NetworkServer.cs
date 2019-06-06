@@ -11,15 +11,23 @@ public class NetworkServer : MonoBehaviour
 {
     public UdpNetworkDriver m_Driver;
     public NativeList<NetworkConnection> m_Connections;
-    private JobHandle ServerJobHandle;
-    public NetworkPipeline m_Pipeline;
+    private JobHandle serverJobHandle;
+    public NetworkPipeline m_Unreliable_Pipeline;
+    public NetworkPipeline m_Reliable_Pipeline;
+
+    public int connectionCapacity = 16;
 
     const int k_PacketSize = 256;
 
     void Start()
     {
-        m_Driver = new UdpNetworkDriver(new SimulatorUtility.Parameters { MaxPacketSize = k_PacketSize, MaxPacketCount = 30, PacketDelayMs = 100});
-        m_Pipeline = m_Driver.CreatePipeline(typeof(UnreliableSequencedPipelineStage), typeof(SimulatorPipelineStage));
+        ReliableUtility.Parameters reliabilityParams = new ReliableUtility.Parameters { WindowSize = 32 };
+        SimulatorUtility.Parameters simulatorParams = new SimulatorUtility.Parameters { MaxPacketSize = k_PacketSize, MaxPacketCount = 30, PacketDelayMs = 100 };
+
+        m_Driver = new UdpNetworkDriver(simulatorParams, reliabilityParams);
+
+        m_Unreliable_Pipeline = m_Driver.CreatePipeline(typeof(UnreliableSequencedPipelineStage), typeof(SimulatorPipelineStage));
+        m_Reliable_Pipeline = m_Driver.CreatePipeline(typeof(UnreliableSequencedPipelineStage), typeof(SimulatorPipelineStage));
 
         NetworkEndPoint endpoint = NetworkEndPoint.AnyIpv4;
         endpoint.Port = 9000;
@@ -28,37 +36,36 @@ public class NetworkServer : MonoBehaviour
         else
             m_Driver.Listen();
 
-        m_Connections = new NativeList<NetworkConnection>(16, Allocator.Persistent); // first parameter is number of connections to accept
-
+        m_Connections = new NativeList<NetworkConnection>(connectionCapacity, Allocator.Persistent); // first parameter is number of connections to accept
     }
 
     public void OnDestroy()
     {
-        ServerJobHandle.Complete();
+        serverJobHandle.Complete();
         m_Driver.Dispose();
         m_Connections.Dispose();
     }
 
     void Update()
     {
-        ServerJobHandle.Complete();
+        serverJobHandle.Complete();
 
         ServerUpdateConnectionsJob connectionJob = new ServerUpdateConnectionsJob
         {
             driver = m_Driver,
-            connections = m_Connections
+            connections = m_Connections,
         };
 
         ServerUpdateJob serverUpdateJob = new ServerUpdateJob
         {
             driver = m_Driver.ToConcurrent(),
             connections = m_Connections.AsDeferredJobArray(),
-            pipeline = m_Pipeline
+            pipeline = m_Reliable_Pipeline
         };
 
-        ServerJobHandle = m_Driver.ScheduleUpdate();
-        ServerJobHandle = connectionJob.Schedule(ServerJobHandle);
-        ServerJobHandle = serverUpdateJob.Schedule(m_Connections, 1, ServerJobHandle);
+        serverJobHandle = m_Driver.ScheduleUpdate();
+        serverJobHandle = connectionJob.Schedule(serverJobHandle);
+        serverJobHandle = serverUpdateJob.Schedule(m_Connections.Length, 1, serverJobHandle);
     }
 }
 
@@ -82,8 +89,9 @@ struct ServerUpdateConnectionsJob : IJob
         NetworkConnection c;
         while ((c = driver.Accept()) != default(NetworkConnection))
         {
-            connections.Add(c);
             Debug.Log("Accepted a connection");
+            // spawn new player and have its name be the same as its index in connections/players
+            // create new player information to keep track of this player
         }
     }
 }
@@ -106,16 +114,44 @@ struct ServerUpdateJob : IJobParallelFor
             if (cmd == NetworkEvent.Type.Data)
             {
                 var readerCtx = default(DataStreamReader.Context);
-                uint number = stream.ReadUInt(ref readerCtx);
+                uint cmdType = stream.ReadUInt(ref readerCtx);
 
-                Debug.Log("Got " + number + " from the Client adding + 2 to it.");
-                number += 2;
+                if(cmdType == CommandType.Input)
+                {
 
-                using (var writer = new DataStreamWriter(4, Allocator.Temp))
+                }
+                else if(cmdType == CommandType.SpawnNewPlayer)
+                {
+
+                }
+                else if(cmdType == CommandType.LoadLevel)
+                {
+                    // send the new client all of the existing players' position information
+                    // format of the message: CommandType.LoadLevel;0; Player 0 position (ex: 1,1,1);1; Player 1 position; ...
+                    /*string data = CommandType.LoadLevel.ToString();
+                    data += ';';
+                    for (int i = 0; i < connections.Length; i++)
+                    {
+                        if (connections[i].IsCreated)
+                        {
+                            // get connection info
+                            string playerInfo = "0;";
+                            
+                        }
+                    }
+                    using (var writer = new DataStreamWriter(4, Allocator.Temp))
+                    {
+                        writer.Write(number);
+                        driver.Send(pipeline, connections[index], writer);
+                    }*/
+
+                }
+
+                /*using (var writer = new DataStreamWriter(4, Allocator.Temp))
                 {
                     writer.Write(number);
                     driver.Send(pipeline, connections[index], writer);
-                }
+                }*/
             }
             else if (cmd == NetworkEvent.Type.Disconnect)
             {
