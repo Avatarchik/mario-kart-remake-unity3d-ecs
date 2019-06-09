@@ -14,10 +14,10 @@ public class UnitSpawnerSystem : JobComponentSystem
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
     }
 
-    struct SpawnJob : IJobForEachWithEntity<UnitSpawnerComponent>
+    struct SpawnJob : IJobForEachWithEntity<UnitSpawner>
     {
         public EntityCommandBuffer.Concurrent commandBuffer;
-        public void Execute(Entity entity, int index, ref UnitSpawnerComponent spawner)
+        public void Execute(Entity entity, int index, ref UnitSpawner spawner)
         {
             Entity spawnedEntity = commandBuffer.Instantiate(index, spawner.prefab);
             commandBuffer.SetComponent(index, spawnedEntity, new Translation { Value = spawner.spawnPoint });

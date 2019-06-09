@@ -13,7 +13,7 @@ public class UnitSpawnerComponentProxy : MonoBehaviour, IDeclareReferencedPrefab
     {
         Vector3 spawnLocation = spawnPoint.transform.position;
 
-        UnitSpawnerComponent unitSpawner = new UnitSpawnerComponent
+        UnitSpawner unitSpawner = new UnitSpawner
         {
             prefab = conversionSystem.GetPrimaryEntity(prefab),
             spawnPoint = new float3(spawnLocation.x, spawnLocation.y, spawnLocation.z)
