@@ -12,6 +12,7 @@ public class UnitSpawnerSystem : JobComponentSystem
     protected override void OnCreate()
     {
         m_EntityCommandBufferSystem = World.GetOrCreateSystem<BeginInitializationEntityCommandBufferSystem>();
+        Debug.Log("unit spawner system oncreate");
     }
 
     struct SpawnJob : IJobForEachWithEntity<UnitSpawner>
@@ -27,6 +28,7 @@ public class UnitSpawnerSystem : JobComponentSystem
     }
     protected override JobHandle OnUpdate(JobHandle inputDeps)
     {
+        //Debug.Log("unit spawner on update");
         JobHandle job = new SpawnJob
         {
             commandBuffer = m_EntityCommandBufferSystem.CreateCommandBuffer().ToConcurrent()

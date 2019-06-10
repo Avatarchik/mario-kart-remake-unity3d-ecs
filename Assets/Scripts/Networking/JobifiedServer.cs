@@ -7,7 +7,7 @@ using UnityEngine.Assertions;
 using Unity.Networking.Transport.Utilities;
 using Unity.Jobs;
 
-public class NetworkServer : MonoBehaviour
+public class JobifiedServer : MonoBehaviour
 {
     public UdpNetworkDriver m_Driver;
     public NativeList<NetworkConnection> m_Connections;
@@ -25,6 +25,7 @@ public class NetworkServer : MonoBehaviour
         SimulatorUtility.Parameters simulatorParams = new SimulatorUtility.Parameters { MaxPacketSize = k_PacketSize, MaxPacketCount = 30, PacketDelayMs = 100 };
 
         m_Driver = new UdpNetworkDriver(simulatorParams, reliabilityParams);
+        m_Connections = new NativeList<NetworkConnection>(connectionCapacity, Allocator.Persistent); // first parameter is number of connections to accept
 
         m_Unreliable_Pipeline = m_Driver.CreatePipeline(typeof(UnreliableSequencedPipelineStage), typeof(SimulatorPipelineStage));
         m_Reliable_Pipeline = m_Driver.CreatePipeline(typeof(UnreliableSequencedPipelineStage), typeof(SimulatorPipelineStage));
@@ -36,7 +37,7 @@ public class NetworkServer : MonoBehaviour
         else
             m_Driver.Listen();
 
-        m_Connections = new NativeList<NetworkConnection>(connectionCapacity, Allocator.Persistent); // first parameter is number of connections to accept
+        
     }
 
     public void OnDestroy()
@@ -65,6 +66,8 @@ public class NetworkServer : MonoBehaviour
 
         serverJobHandle = m_Driver.ScheduleUpdate();
         serverJobHandle = connectionJob.Schedule(serverJobHandle);
+        serverJobHandle.Complete();
+        //Debug.Log(m_Connections.Length);
         serverJobHandle = serverUpdateJob.Schedule(m_Connections.Length, 1, serverJobHandle);
     }
 }

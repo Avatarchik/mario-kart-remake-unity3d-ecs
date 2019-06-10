@@ -4,7 +4,12 @@ using Unity.Entities;
 using Unity.Networking.Transport;
 using UnityEngine;
 
-public struct NetworkStreamConnection : IComponentData
+public struct NetworkClientConnection: IComponentData
 {
-    public NetworkConnection Value;
+    public NetworkConnection connection;
+}
+
+public struct NetworkServerConnection : IComponentData
+{
+    public NetworkConnection connection;
 }

@@ -5,7 +5,7 @@ using Unity.Networking.Transport;
 using Unity.Networking.Transport.Utilities;
 using Unity.Jobs;
 
-public class NetworkClient : MonoBehaviour
+public class JobifiedClient : MonoBehaviour
 {
     public UdpNetworkDriver m_Driver;
     public NativeArray<NetworkConnection> m_Connection;
@@ -53,7 +53,7 @@ public class NetworkClient : MonoBehaviour
             reliablePipeline = m_Reliable_Pipeline
         };
         clientJobHandle = m_Driver.ScheduleUpdate();
-        clientJobHandle = job.Schedule(clientJobHandle);
+        //clientJobHandle = job.Schedule(clientJobHandle);
     }
 
 }
