@@ -7,9 +7,11 @@ using UnityEngine;
 public struct NetworkClientConnection: IComponentData
 {
     public NetworkConnection connection;
+    public int networkId;
 }
 
 public struct NetworkServerConnection : IComponentData
 {
     public NetworkConnection connection;
+    public int networkId;
 }
