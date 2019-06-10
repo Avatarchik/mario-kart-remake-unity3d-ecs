@@ -87,6 +87,10 @@ public class NetworkServerSystem : JobComponentSystem
             {
                 if (command == NetworkEvent.Type.Data)
                 {
+                    /*
+                    * Structure of a message to be sent over the server
+                    * [size of message, not including this part, sizeof(int)][command type sizeof(int)][other data]
+                    */
                     Debug.Log("data command on server");
                     DataStreamReader.Context readerCtx = default(DataStreamReader.Context);
                     byte[] lengthOfDataAsBytes = stream.ReadBytesAsArray(ref readerCtx, sizeof(int));
@@ -136,7 +140,6 @@ public class NetworkServerSystem : JobComponentSystem
 
                         commandBuffer.SetComponent(index, entity, new NetworkServerConnection
                         {
-                            connection = serverConnection.connection,
                             networkId = networkId
                         });
                     }

@@ -109,6 +109,10 @@ public class NetworkClientSystem : JobComponentSystem
                     }
                     else if (command == NetworkEvent.Type.Data)
                     {
+                        /*
+                         * Structure of a message to be sent over the server
+                         * [size of message, not including this part, sizeof(int)][command type sizeof(int)][other data]
+                         */
                         DataStreamReader.Context readerCtx = default(DataStreamReader.Context);
                         byte[] lengthOfDataAsBytes = stream.ReadBytesAsArray(ref readerCtx, sizeof(int));
                         if (BitConverter.IsLittleEndian)
@@ -137,6 +141,11 @@ public class NetworkClientSystem : JobComponentSystem
                             }
                             int id = BitConverter.ToInt32(idAsBytes, 0);
                             Debug.Log("player id from server " + id);
+
+                            commandBuffer.SetComponent(index, entity, new NetworkClientConnection
+                            {
+                                networkId = id
+                            });
                         }
                     }
                     else if (command == NetworkEvent.Type.Disconnect)
